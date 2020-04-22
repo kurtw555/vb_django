@@ -129,4 +129,5 @@ dmypy.json
 .pyre/
 
 # Misc options
+.idea
 .idea/
