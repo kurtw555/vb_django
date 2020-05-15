@@ -104,6 +104,7 @@ class LocationAPI:
         response = HttpResponse()
         if request.user.is_authenticated:
             location_details = request.PUT.dict()
+            # TODO: Check authorization
             if "id" in location_details:
                 current_location = Location.objects.filter(id=location_details["id"])
                 location_models = AnalyticalModel.objects.filter(

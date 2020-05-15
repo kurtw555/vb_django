@@ -24,8 +24,13 @@ class Workflow(models.Model):
     location = models.ForeignKey(Location, on_delete=models.CASCADE)
     name = models.CharField(max_length=32)
     description = models.CharField(max_length=128)
-    results = models.FloatField()
+
+
+class WorkflowResults(models.Model):
+    workflow = models.ForeignKey(Workflow, on_delete=models.CASCADE)
+    dataset = models.CharField(max_length=32)           # ModelData ID
     timestamp = models.DateTimeField()
+    comments = models.CharField(max_length=256)
 
 
 class AnalyticalModel(models.Model):
@@ -41,6 +46,21 @@ class ModelMetadata(models.Model):
     model = models.ForeignKey(AnalyticalModel, on_delete=models.CASCADE)
     name = models.CharField(max_length=32)
     value = models.CharField(max_length=128)
+
+
+class ModelData(models.Model):
+    model = models.ForeignKey(AnalyticalModel, on_delete=models.CASCADE)
+    dataset = models.CharField(max_length=32)           # dataset ID
+    name = models.CharField(max_length=32)
+    data = models.BinaryField()
+    comments = models.CharField(max_length=256)
+
+
+class ModelResults(models.Model):
+    model = models.ForeignKey(AnalyticalModel, on_delete=models.CASCADE)
+    dataset = models.CharField(max_length=32)   # dataset ID
+    timestamp = models.DateTimeField()
+    result = models.FloatField()
 
 
 class Dataset(models.Model):
@@ -71,5 +91,5 @@ class AccessControlList(models.Model):
     target_user = models.CharField(max_length=32)
     object_id = models.CharField(max_length=32)
     object_type = models.CharField(max_length=15, choices=types)
-    duration = models.DateTimeField()
+    expiration = models.DateTimeField()
     access_type = models.CharField(max_length=5, choices=a_types)
