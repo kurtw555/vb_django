@@ -1,9 +1,9 @@
 from django.http import HttpResponse
 from django.views.decorators.http import require_http_methods
 from vb_django.validation import Validator
-import numpy as np
 import json
 from vb_django.models import Location, Workflow, AnalyticalModel, AccessControlList
+from vb_django.acl import Authorization
 
 
 class LocationAPI:
@@ -27,8 +27,8 @@ class LocationAPI:
         response = HttpResponse()
         if request.user.is_authenticated:
             location_details = request.POST.dict()
-            missing_parameters = np.setdiff1d(location_details, required_parameters)
-            if len(missing_parameters) > 0:
+            missing_parameters = Validator.validate_inputlist(required_parameters, location_details.keys())
+            if len(missing_parameters) != 0:
                 # Validate each point, if invalid add to response content
                 valid_points = True
                 if not Validator.validate_point(location_details["start_latitude"], location_details["start_longitude"]):
@@ -61,8 +61,7 @@ class LocationAPI:
                 else:
                     response.status_code = 400
             else:
-                response.content = "Unable to add location, missing required parameter(s): {}" \
-                    .format(",".join(missing_parameters))
+                response.content = missing_parameters
                 response.status_code = 400
         else:
             response.status_code = 401
@@ -99,50 +98,65 @@ class LocationAPI:
         with new models if the location has changed [solution(s): 1) create new location if location has completed
         model, or 2) delete all workflows of completed models if the location has changed]. Solution 1 implemented.
         :param request: The PUT request
-        :return: The updated object with status 200 on success, if new location created 201 , if fail 401
+        :return: The updated object with status 200 on success, if new location created 201 ,
+        401 for unauthenticated request and 403 for unauthorized request
         """
+        required_parameters = [
+            "id", "name", "description",
+            "start_latitude", "start_longitude",
+            "end_latitude", "end_longitude",
+            "o_latitude", "o_longitude"
+        ]
         response = HttpResponse()
         if request.user.is_authenticated:
             location_details = request.PUT.dict()
-            # TODO: Check authorization
-            if "id" in location_details:
-                current_location = Location.objects.filter(id=location_details["id"])
-                location_models = AnalyticalModel.objects.filter(
-                    workflow=Workflow.objects.filter(
-                        location=current_location
+            owner = Authorization().get_owner(
+                object_type="Location", object_id=location_details["id"])
+            if owner == request.user:
+                missing_parameters = Validator.validate_inputlist(required_parameters, location_details.keys())
+                if len(missing_parameters) != 0:
+                    current_location = Location.objects.filter(id=location_details["id"])
+                    location_models = AnalyticalModel.objects.filter(
+                        workflow=Workflow.objects.filter(
+                            location=current_location
+                        )
                     )
-                )
-                existing_model = False
-                for m in location_models:
-                    if m.model is not None:
-                        existing_model = True
-                if existing_model:
-                    new_location = Location(
-                        owner=request.user,
-                        name=location_details["name"],
-                        description=location_details["description"],
-                        start_latitude=location_details["start_latitude"],
-                        start_longitude=location_details["start_longitude"],
-                        end_latitude=location_details["end_latitude"],
-                        end_longitude=location_details["end_longitude"],
-                        o_latitude=location_details["o_latitude"],
-                        o_longitude=location_details["o_longitude"]
-                    )
-                    new_location.save()
-                    response.content = new_location
-                    response.status_code = 201
+                    existing_model = False
+                    for m in location_models:
+                        if m.model is not None:
+                            existing_model = True
+                    if existing_model:
+                        new_location = Location(
+                            owner=request.user,
+                            name=location_details["name"],
+                            description=location_details["description"],
+                            start_latitude=location_details["start_latitude"],
+                            start_longitude=location_details["start_longitude"],
+                            end_latitude=location_details["end_latitude"],
+                            end_longitude=location_details["end_longitude"],
+                            o_latitude=location_details["o_latitude"],
+                            o_longitude=location_details["o_longitude"]
+                        )
+                        new_location.save()
+                        response.content = new_location
+                        response.status_code = 201
+                    else:
+                        current_location.name = location_details["name"]
+                        current_location.description = location_details["description"]
+                        current_location.start_latitude = location_details["start_latitude"]
+                        current_location.start_longitude = location_details["start_longitude"]
+                        current_location.end_latitude = location_details["end_latitude"]
+                        current_location.end_longitude = location_details["end_longitude"]
+                        current_location.o_latitude = location_details["o_latitude"]
+                        current_location.o_longitude = location_details["o_longitude"]
+                        current_location.save()
+                        response.content = current_location
+                        response.status_code = 200
                 else:
-                    current_location.name = location_details["name"]
-                    current_location.description = location_details["description"]
-                    current_location.start_latitude = location_details["start_latitude"]
-                    current_location.start_longitude = location_details["start_longitude"]
-                    current_location.end_latitude = location_details["end_latitude"]
-                    current_location.end_longitude = location_details["end_longitude"]
-                    current_location.o_latitude = location_details["o_latitude"]
-                    current_location.o_longitude = location_details["o_longitude"]
-                    current_location.save()
-                    response.content = current_location
-                    response.status_code = 200
+                    response.content = missing_parameters
+                    response.status_code = 400
+            else:
+                response.status_code = 403
         else:
             response.status_code = 401
         return response
@@ -153,14 +167,20 @@ class LocationAPI:
         """
         Deletes the specified location. Deletion is cascading, all objects that are dependent on the location will also be deleted.
         :param request: The DELETE request
-        :return: 200 for a successful deletion, 400 for an invalid request, or a 401 for authorized request
+        :return: 200 for a successful deletion, 400 for an invalid request, or a 401 for unauthenticated request, and
+        403 for unauthorized request
         """
         response = HttpResponse()
         if request.user.is_authenticated:
             location_details = request.DELETE.dict()
             if "id" in location_details:
-                Location.objects.filter(id=location_details["id"]).delete()
-                response.status_code = 200
+                owner = Authorization().get_owner(
+                    object_type="Location", object_id=location_details["id"])
+                if owner == request.user:
+                    Location.objects.filter(id=location_details["id"]).delete()
+                    response.status_code = 200
+                else:
+                    response.status_code = 403
             else:
                 response.status_code = 400
                 response.content = "Deletion request requires 'id' parameter"

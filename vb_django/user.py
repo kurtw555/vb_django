@@ -5,7 +5,7 @@ from django.contrib.auth import authenticate, login
 import json
 
 
-class VBUser:
+class UserAPI:
 
     @staticmethod
     @require_POST

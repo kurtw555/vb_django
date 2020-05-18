@@ -17,9 +17,43 @@ from django.contrib import admin
 from django.urls import path
 from django.contrib.staticfiles.views import serve
 from .landing import landing
+from vb_django.user import UserAPI
+from vb_django.locations import LocationAPI
+from vb_django.locations_metadata import LocationMetadataAPI
+from vb_django.workflow import WorkflowAPI
+
 
 urlpatterns = [
     path('', landing),
     path('admin/', admin.site.urls),
-    path('app/*', serve)
+    path('app/*', serve),
+
+    # ---------- User API endpoints ----------- #
+    path('api/user/register/', UserAPI.register),                           # POST
+    path('api/user/login/', UserAPI.login),                                 # POST
+    path('api/user/passwordreset/', UserAPI.reset_password),                # GET
+
+    # ---------- Location API endpoints ---------- #
+    path('api/location/', LocationAPI.get_locations),                       # GET
+    path('api/location/add/', LocationAPI.add_location),                    # POST
+    path('api/location/update/', LocationAPI.edit_location),                # PUT
+    path('api/location/remove/', LocationAPI.delete_location),              # DELETE
+
+    # ---------- Location Metadata API endpoints ----------- #
+    path('api/locationmeta/', LocationMetadataAPI.get_metadata),            # GET
+    path('api/locationmeta/add/', LocationMetadataAPI.add_metadata),        # POST
+    path('api/locationmeta/update/', LocationMetadataAPI.edit_metadata),    # PUT
+    path('api/locationmeta/remove/', LocationMetadataAPI.delete_metadata),  # DELETE
+
+    # --------- Workflows API endpoints ---------- #
+    path('api/workflow/', WorkflowAPI.get_workflows),                       # GET
+    path('api/workflow/add/', WorkflowAPI.add_workflow),                    # POST
+    path('api/workflow/update/', WorkflowAPI.edit_workflow),                # PUT
+    path('api/workflow/remove/', WorkflowAPI.delete_workflow),              # DELETE
+
+    # --------- Analytical Models API endpoints ---------- #
+    # path('api/analyticalmodel/', AnalyticalModelAPI.get_model),           # GET
+    # path('api/analyticalmodel/add/', AnalyticalModelAPI.add_model),       # POST
+    # path('api/analyticalmodel/update/', AnalyticalModelAPI.edit_model),   # PUT
+    # path('api/analyticalmodel/remove/', AnalyticalModelAPI.delete_model), # DELETE
 ]
