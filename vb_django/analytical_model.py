@@ -3,18 +3,18 @@ from django.views.decorators.http import require_http_methods
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework import renderers, status, generics, views
 from vb_django.validation import Validator
-from vb_django.models import Location, Workflow, AccessControlList
+from vb_django.models import Location, Workflow, AnalyticalModel, AccessControlList
 from vb_django.acl import Authorization
 
 
-class WorkflowAPI(views.APIView):
+class AnalyticalModelAPI(views.APIView):
 
     @api_view(["GET"])
     @renderer_classes([renderers.OpenAPIRenderer])
     @require_http_methods(["GET"])
-    def get_workflows(self, request):
+    def get_models(self, request):
         """
-        GET request to get all workflows that the current logged in user has access to.
+        GET request to get all analytical models that the current logged in user has access to.
         :param request: The GET request
         :return: A list of all workflows where the user is the owner of the corresponding location, or has access to.
         """
