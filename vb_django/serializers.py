@@ -92,10 +92,34 @@ class LocationMetadataSerializer(serializers.ModelSerializer):
 
 
 class WorkflowSerializer(serializers.ModelSerializer):
+    location = serializers.PrimaryKeyRelatedField(queryset=vb_models.Location.objects.all())
+
+    def create(self, validated_data):
+        workflow = vb_models.Workflow(**validated_data)
+        workflow.save()
+        return workflow
+
+    def check_integrity(self, workflow):
+        can_update = True
+        a_models = vb_models.AnalyticalModel.objects.filter(workflow__id=workflow.id)
+        for m in a_models:
+            if m.model is not None:
+                can_update = False
+        return can_update
+
+    def update(self, instance, validated_data):
+        can_update = self.check_integrity(instance)
+        workflow = vb_models.Workflow(**validated_data)
+        if can_update:
+            workflow.id = instance.id
+        workflow.location = instance.location
+        workflow.save()
+        return workflow
+
     class Meta:
         model = vb_models.Location
         fields = [
-            "location", "name", "description"
+            "id", "location", "name", "description"
         ]
 
 

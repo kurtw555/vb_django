@@ -23,8 +23,8 @@ from drf_yasg import openapi
 from .landing import landing
 from vb_django.user_views import UserView, UserLoginView
 from vb_django.locations_views import LocationView
+from vb_django.workflow_views import WorkflowView
 from vb_django.locations_metadata import LocationMetadataAPI
-from vb_django.workflow import WorkflowAPI
 
 
 schema_view = get_schema_view(
@@ -38,7 +38,10 @@ schema_view = get_schema_view(
 )
 
 router = routers.SimpleRouter()
+# ---------- Location API endpoints ---------- #
 router.register('location', LocationView, basename='location')
+# --------- Workflows API endpoints ---------- #
+router.register('workflow', WorkflowView, basename='workflow')
 
 
 urlpatterns = [
@@ -54,25 +57,14 @@ urlpatterns = [
     path('api/user/login/', UserLoginView.as_view()),                           # POST
     path('api/user/register/', UserView.as_view()),       # POST
 
+    # ------ ADD the DRF urls registered to the router ------ #
     path('api/', include(router.urls)),
-
-    # ---------- Location API endpoints ---------- #
-    # path('api/location/', LocationAPI.get_locations),                       # GET
-    # path('api/location/add/', LocationAPI.add_location),                    # POST
-    # path('api/location/update/', LocationAPI.edit_location),                # PUT
-    # path('api/location/remove/', LocationAPI.delete_location),              # DELETE
 
     # ---------- Location Metadata API endpoints ----------- #
     # path('api/locationmeta/', LocationMetadataAPI.get_metadata),            # GET
     # path('api/locationmeta/add/', LocationMetadataAPI.add_metadata),        # POST
     # path('api/locationmeta/update/', LocationMetadataAPI.edit_metadata),    # PUT
     # path('api/locationmeta/remove/', LocationMetadataAPI.delete_metadata),  # DELETE
-
-    # --------- Workflows API endpoints ---------- #
-    # path('api/workflow/', WorkflowAPI().get_workflows),                       # GET
-    # path('api/workflow/add/', WorkflowAPI().add_workflow),                    # POST
-    # path('api/workflow/update/', WorkflowAPI().edit_workflow),                # PUT
-    # path('api/workflow/remove/', WorkflowAPI().delete_workflow),              # DELETE
 
     # --------- Analytical Models API endpoints ---------- #
     # path('api/analyticalmodel/', AnalyticalModelAPI.get_model),           # GET

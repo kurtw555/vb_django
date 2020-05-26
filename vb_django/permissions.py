@@ -1,5 +1,5 @@
 from rest_framework import permissions
-from vb_django.models import AnalyticalModel
+from vb_django.models import AnalyticalModel, Workflow, Location
 
 
 class IsOwner(permissions.BasePermission):
@@ -9,6 +9,15 @@ class IsOwner(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         return obj.owner == request.user
+
+
+class IsOwnerOfWorkflow(permissions.BasePermission):
+    """
+    Checks if the user ia the owner of the workflow's corresponding location.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        return obj.location.owner == request.user
 
 
 class HasModelIntegrity(permissions.BasePermission):
