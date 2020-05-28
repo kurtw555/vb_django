@@ -10,7 +10,7 @@ class IsOwner(permissions.BasePermission):
         return obj.owner == request.user
 
 
-class IsOwnerOfWorkflow(permissions.BasePermission):
+class IsOwnerOfLocationChild(permissions.BasePermission):
     """
     Checks if the user ia the owner of the workflow's corresponding location.
     """
@@ -18,7 +18,7 @@ class IsOwnerOfWorkflow(permissions.BasePermission):
         return obj.location.owner == request.user
 
 
-class IsOwnerOfAnalyticalModel(permissions.BasePermission):
+class IsOwnerOfWorkflowChild(permissions.BasePermission):
     """
     Checks if the user ia the owner of the analytical model's corresponding location.
     """

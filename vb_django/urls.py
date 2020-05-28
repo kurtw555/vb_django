@@ -24,6 +24,7 @@ from vb_django.user_views import UserView, UserLoginView
 from vb_django.locations_views import LocationView
 from vb_django.workflow_views import WorkflowView
 from vb_django.analytical_model_views import AnalyticalModelView
+from vb_django.dataset_views import DatasetView
 
 
 schema_view = get_schema_view(
@@ -43,6 +44,8 @@ router.register('location', LocationView, basename='location')
 router.register('workflow', WorkflowView, basename='workflow')
 # ------ Analytical Model API endpoints ------ #
 router.register('analyticalmodel', AnalyticalModelView, basename='analyticalmodel')
+# --------- Dataset API endpoints ---------- #
+router.register('dataset', DatasetView, basename='dataset')
 
 
 urlpatterns = [
@@ -67,9 +70,4 @@ urlpatterns = [
     # path('api/locationmeta/update/', LocationMetadataAPI.edit_metadata),    # PUT
     # path('api/locationmeta/remove/', LocationMetadataAPI.delete_metadata),  # DELETE
 
-    # --------- Analytical Models API endpoints ---------- #
-    # path('api/analyticalmodel/', AnalyticalModelAPI.get_model),           # GET
-    # path('api/analyticalmodel/add/', AnalyticalModelAPI.add_model),       # POST
-    # path('api/analyticalmodel/update/', AnalyticalModelAPI.edit_model),   # PUT
-    # path('api/analyticalmodel/remove/', AnalyticalModelAPI.delete_model), # DELETE
 ]

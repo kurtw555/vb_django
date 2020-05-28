@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 from vb_django.models import Workflow
 from vb_django.serializers import WorkflowSerializer
-from vb_django.permissions import IsOwnerOfWorkflow
+from vb_django.permissions import IsOwnerOfLocationChild
 
 
 class WorkflowView(viewsets.ViewSet):
@@ -13,7 +13,7 @@ class WorkflowView(viewsets.ViewSet):
     """
     serializer_class = WorkflowSerializer
     authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated, IsOwnerOfWorkflow]
+    permission_classes = [IsAuthenticated, IsOwnerOfLocationChild]
 
     def list(self, request, pk=None):
         """
@@ -62,7 +62,7 @@ class WorkflowView(viewsets.ViewSet):
                     "No workflow found for id: {}".format(request.data["id"]),
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            if IsOwnerOfWorkflow().has_object_permission(request, self, original_workflow):
+            if IsOwnerOfLocationChild().has_object_permission(request, self, original_workflow):
                 workflow = serializer.update(original_workflow, serializer.validated_data)
                 if workflow:
                     response_status = status.HTTP_201_CREATED
@@ -87,7 +87,7 @@ class WorkflowView(viewsets.ViewSet):
                 workflow = Workflow.objects.get(id=request.data["id"])
             except Workflow.DoesNotExist:
                 return Response("No workflow found for id: {}".format(request.data["id"]), status=status.HTTP_400_BAD_REQUEST)
-            if IsOwnerOfWorkflow().has_object_permission(request, self, workflow):
+            if IsOwnerOfLocationChild().has_object_permission(request, self, workflow):
                 workflow.delete()
                 return Response(status=status.HTTP_200_OK)
             else:

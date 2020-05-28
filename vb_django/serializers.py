@@ -177,10 +177,38 @@ class ModelResultsSerializer(serializers.ModelSerializer):
 
 
 class DatasetSerializer(serializers.ModelSerializer):
+    workflow = serializers.PrimaryKeyRelatedField(queryset=vb_models.Workflow.objects.all())
+    data = serializers.CharField()
+
+    def check_integrity(self, workflow):
+        can_update = True
+        a_models = vb_models.AnalyticalModel.objects.filter(workflow__id=workflow.id)
+        for m in a_models:
+            if m.model is not None:
+                can_update = False
+        return can_update
+
+    def create(self, validated_data):
+        if "data" in validated_data.keys():
+            validated_data["data"] = str(validated_data["data"]).encode()
+        dataset = vb_models.Dataset(**validated_data)
+        dataset.save()
+        return dataset
+
+    def update(self, instance, validated_data):
+        if "data" in validated_data.keys():
+            validated_data["data"] = str(validated_data["data"]).encode()
+        dataset = vb_models.Dataset(**validated_data)
+        if self.check_integrity(dataset.workflow):
+            dataset.id = instance.id
+        dataset.workflow = instance.workflow
+        dataset.save()
+        return dataset
+
     class Meta:
         model = vb_models.Dataset
         fields = [
-            "workflow", "name", "description", "data"
+            "id", "workflow", "name", "description", "data"
         ]
 
 
