@@ -17,14 +17,13 @@ from django.contrib import admin
 from django.urls import path, include
 from django.contrib.staticfiles.views import serve
 from rest_framework import permissions, routers
-from rest_framework.authtoken import views
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from .landing import landing
 from vb_django.user_views import UserView, UserLoginView
 from vb_django.locations_views import LocationView
 from vb_django.workflow_views import WorkflowView
-from vb_django.locations_metadata import LocationMetadataAPI
+from vb_django.analytical_model_views import AnalyticalModelView
 
 
 schema_view = get_schema_view(
@@ -42,6 +41,8 @@ router = routers.SimpleRouter()
 router.register('location', LocationView, basename='location')
 # --------- Workflows API endpoints ---------- #
 router.register('workflow', WorkflowView, basename='workflow')
+# ------ Analytical Model API endpoints ------ #
+router.register('analyticalmodel', AnalyticalModelView, basename='analyticalmodel')
 
 
 urlpatterns = [

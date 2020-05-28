@@ -9,7 +9,7 @@ from vb_django.permissions import IsOwnerOfWorkflow
 
 class WorkflowView(viewsets.ViewSet):
     """
-    The Workflow API endpoint viewset for managing user locations in the database.
+    The Workflow API endpoint viewset for managing user workflows in the database.
     """
     serializer_class = WorkflowSerializer
     authentication_classes = [TokenAuthentication]
@@ -47,6 +47,12 @@ class WorkflowView(viewsets.ViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request):
+        """
+        PUT request for updating a workflow, if update will cause lose of analytical model integrity, a new workflow is
+        created.
+        :param request: PUT request
+        :return: The updated/200 or new/201 workflow
+        """
         serializer = self.serializer_class(data=request.data.dict(), context={'request': request})
         if serializer.is_valid() and "id" in request.data.keys():
             try:
@@ -56,22 +62,34 @@ class WorkflowView(viewsets.ViewSet):
                     "No workflow found for id: {}".format(request.data["id"]),
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            workflow = serializer.update(original_workflow, serializer.validated_data)
-            if workflow:
-                response_status = status.HTTP_201_CREATED
-                response_data = serializer.data
-                response_data["id"] = workflow.id
-                if int(request.data["id"]) == workflow.id:
-                    response_status = status.HTTP_200_OK
-                return Response(response_data, status=response_status)
+            if IsOwnerOfWorkflow().has_object_permission(request, self, original_workflow):
+                workflow = serializer.update(original_workflow, serializer.validated_data)
+                if workflow:
+                    response_status = status.HTTP_201_CREATED
+                    response_data = serializer.data
+                    response_data["id"] = workflow.id
+                    if int(request.data["id"]) == workflow.id:
+                        response_status = status.HTTP_200_OK
+                    return Response(response_data, status=response_status)
+            else:
+                return Response(status=status.HTTP_401_UNAUTHORIZED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request):
+        """
+        DELETE request for removing the workflow from the location, cascading deletion for elements in database.
+        Front end should require verification of action.
+        :param request: DELETE request
+        :return:
+        """
         if "id" in request.data.keys():
             try:
                 workflow = Workflow.objects.get(id=request.data["id"])
             except Workflow.DoesNotExist:
                 return Response("No workflow found for id: {}".format(request.data["id"]), status=status.HTTP_400_BAD_REQUEST)
-            workflow.delete()
-            return Response(status=status.HTTP_200_OK)
+            if IsOwnerOfWorkflow().has_object_permission(request, self, workflow):
+                workflow.delete()
+                return Response(status=status.HTTP_200_OK)
+            else:
+                return Response(status=status.HTTP_401_UNAUTHORIZED)
         return Response("No workflow 'id' in request.", status=status.HTTP_400_BAD_REQUEST)

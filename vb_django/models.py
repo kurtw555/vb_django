@@ -37,9 +37,9 @@ class AnalyticalModel(models.Model):
     workflow = models.ForeignKey(Workflow, on_delete=models.CASCADE)
     name = models.CharField(max_length=32)
     description = models.CharField(max_length=128)
-    variables = models.CharField(max_length=256)        # serializable JSON
-    model = models.BinaryField()
-    dataset = models.CharField(max_length=16)
+    variables = models.CharField(max_length=256, null=True, blank=True)        # serializable JSON
+    model = models.BinaryField(null=True, blank=True)
+    dataset = models.CharField(max_length=16, null=True, blank=True)
 
 
 class ModelMetadata(models.Model):

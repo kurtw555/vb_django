@@ -46,12 +46,15 @@ class LocationView(viewsets.ViewSet):
                 original_location = Location.objects.get(id=request.data["id"])
             except Location.DoesNotExist:
                 return Response("No location found for id: {}".format(request.data["id"]), status=status.HTTP_400_BAD_REQUEST)
-            location = serializer.update(original_location, serializer.validated_data)
-            if location:
-                request_status = status.HTTP_201_CREATED
-                if int(request.data["id"]) == location.id:
-                    request_status = status.HTTP_200_OK
-                return Response(serializer.data, status=request_status)
+            if IsOwner().has_object_permission(request, self, original_location):
+                location = serializer.update(original_location, serializer.validated_data)
+                if location:
+                    request_status = status.HTTP_201_CREATED
+                    if int(request.data["id"]) == location.id:
+                        request_status = status.HTTP_200_OK
+                    return Response(serializer.data, status=request_status)
+            else:
+                return Response(status=status.HTTP_401_UNAUTHORIZED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request):
@@ -60,6 +63,9 @@ class LocationView(viewsets.ViewSet):
                 location = Location.objects.get(id=request.data["id"])
             except Location.DoesNotExist:
                 return Response("No location found for id: {}".format(request.data["id"]), status=status.HTTP_400_BAD_REQUEST)
-            location.delete()
-            return Response(status=status.HTTP_200_OK)
+            if IsOwner().has_object_permission(request, self, location):
+                location.delete()
+                return Response(status=status.HTTP_200_OK)
+            else:
+                return Response(status=status.HTTP_401_UNAUTHORIZED)
         return Response("No location 'id' in request.", status=status.HTTP_400_BAD_REQUEST)
