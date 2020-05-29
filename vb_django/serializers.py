@@ -25,7 +25,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class LocationSerializer(serializers.ModelSerializer):
-    owner = serializers.PrimaryKeyRelatedField(read_only=True, default=serializers.CurrentUserDefault())
+    owner_id = serializers.PrimaryKeyRelatedField(read_only=True, default=serializers.CurrentUserDefault())
 
     def validate_points(self, validated_data):
         validated = True
@@ -76,7 +76,7 @@ class LocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = vb_models.Location
         fields = [
-            "id", "owner", "name", "description",
+            "id", "owner_id", "name", "description",
             "start_latitude", "start_longitude",
             "end_latitude", "end_longitude",
             "o_latitude", "o_longitude"
@@ -87,12 +87,12 @@ class LocationMetadataSerializer(serializers.ModelSerializer):
     class Meta:
         model = vb_models.LocationMetadata
         fields = [
-            "location", "name", "value"
+            "location_id", "name", "value"
         ]
 
 
 class WorkflowSerializer(serializers.ModelSerializer):
-    location = serializers.PrimaryKeyRelatedField(queryset=vb_models.Location.objects.all())
+    location_id = serializers.PrimaryKeyRelatedField(queryset=vb_models.Location.objects.all())
 
     def create(self, validated_data):
         workflow = vb_models.Workflow(**validated_data)
@@ -119,7 +119,7 @@ class WorkflowSerializer(serializers.ModelSerializer):
     class Meta:
         model = vb_models.Workflow
         fields = [
-            "id", "location", "name", "description"
+            "id", "location_id", "name", "description"
         ]
 
 
@@ -127,12 +127,12 @@ class WorkflowResultsSerializer(serializers.ModelSerializer):
     class Meta:
         model = vb_models.WorkflowResults
         fields = [
-            "workflow", "dataset", "timestamp", "comments"
+            "workflow_id", "dataset_id", "timestamp", "comments"
         ]
 
 
 class AnalyticalModelSerializer(serializers.ModelSerializer):
-    workflow = serializers.PrimaryKeyRelatedField(queryset=vb_models.Workflow.objects.all())
+    workflow_id = serializers.PrimaryKeyRelatedField(queryset=vb_models.Workflow.objects.all())
 
     def create(self, validated_data):
         amodel = vb_models.AnalyticalModel(**validated_data)
@@ -150,7 +150,7 @@ class AnalyticalModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = vb_models.AnalyticalModel
         fields = [
-            "id", "workflow", "name", "description", "variables", "dataset"
+            "id", "workflow_id", "name", "description", "variables", "dataset"
         ]
 
 
@@ -158,26 +158,26 @@ class ModelMetadataSerializer(serializers.ModelSerializer):
     class Meta:
         model = vb_models.ModelMetadata
         fields = [
-            "model", "name", "value"
+            "model_id", "name", "value"
         ]
 
 
 class ModelDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = vb_models.ModelData
-        fields = ["model", "dataset", "name", "data", "comments"]
+        fields = ["model_id", "dataset_id", "name", "data", "comments"]
 
 
 class ModelResultsSerializer(serializers.ModelSerializer):
     class Meta:
         model = vb_models.ModelResults
         fields = [
-            "model", "dataset", "timestamp", "result"
+            "model_id", "dataset_id", "timestamp", "result"
         ]
 
 
 class DatasetSerializer(serializers.ModelSerializer):
-    workflow = serializers.PrimaryKeyRelatedField(queryset=vb_models.Workflow.objects.all())
+    workflow_id = serializers.PrimaryKeyRelatedField(queryset=vb_models.Workflow.objects.all())
     data = serializers.CharField()
 
     def check_integrity(self, workflow):
@@ -208,7 +208,7 @@ class DatasetSerializer(serializers.ModelSerializer):
     class Meta:
         model = vb_models.Dataset
         fields = [
-            "id", "workflow", "name", "description", "data"
+            "id", "workflow_id", "name", "description", "data"
         ]
 
 
@@ -216,7 +216,7 @@ class DatasetMetadataSerializer(serializers.ModelSerializer):
     class Meta:
         model = vb_models.DatasetMetadata
         fields = [
-            "model", "name", "value"
+            "model_id", "name", "value"
         ]
 
 
@@ -224,5 +224,5 @@ class AccessControlListSerializer(serializers.ModelSerializer):
     class Meta:
         model = vb_models.AccessControlList
         fields = [
-            "owner", "target_user", "object_id", "object_type", "expiration", "access_type"
+            "owner_id", "target_user_id", "object_id", "object_type", "expiration", "access_type"
         ]

@@ -1,4 +1,5 @@
 from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
@@ -15,14 +16,14 @@ class AnalyticalModelView(viewsets.ViewSet):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated, IsOwnerOfWorkflowChild]
 
-    def list(self, request, pk=None):
+    def list(self, request):
         """
         GET request that lists all the analytical models for a specific workflow id
         :param request: GET request, containing the workflow id as 'workflow'
         :return: List of analytical models
         """
-        if 'workflow' in self.request.query_params.keys():
-            a_models = AnalyticalModel.objects.filter(workflow__id=int(self.request.query_params.get('workflow')))
+        if 'workflow_id' in self.request.query_params.keys():
+            a_models = AnalyticalModel.objects.filter(workflow_id=int(self.request.query_params.get('workflow_id')))
             serializer = self.serializer_class(a_models, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(
@@ -45,14 +46,14 @@ class AnalyticalModelView(viewsets.ViewSet):
                 return Response(amodel_inputs, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def put(self, request):
+    def update(self, request, pk=None):
         serializer = self.serializer_class(data=request.data.dict(), context={'request': request})
-        if serializer.is_valid() and "id" in request.data.keys():
+        if serializer.is_valid() and pk is not None:
             try:
-                original_amodel = AnalyticalModel.objects.get(id=request.data["id"])
+                original_amodel = AnalyticalModel.objects.get(id=int(pk))
             except AnalyticalModel.DoesNotExist:
                 return Response(
-                    "No analytical model found for id: {}".format(request.data["id"]),
+                    "No analytical model found for id: {}".format(pk),
                     status=status.HTTP_400_BAD_REQUEST
                 )
             if IsOwnerOfWorkflowChild().has_object_permission(request, self, original_amodel):
@@ -61,22 +62,22 @@ class AnalyticalModelView(viewsets.ViewSet):
                     response_status = status.HTTP_201_CREATED
                     response_data = serializer.data
                     response_data["id"] = amodel.id
-                    if int(request.data["id"]) == amodel.id:
+                    if int(pk) == amodel.id:
                         response_status = status.HTTP_200_OK
                     return Response(response_data, status=response_status)
             else:
                 return Response(status=status.HTTP_401_UNAUTHORIZED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request):
-        if "id" in request.data.keys():
+    def destroy(self, request, pk=None):
+        if pk is not None:
             try:
-                amodel = AnalyticalModel.objects.get(id=request.data["id"])
+                amodel = AnalyticalModel.objects.get(id=int(pk))
             except AnalyticalModel.DoesNotExist:
-                return Response("No analytical model found for id: {}".format(request.data["id"]), status=status.HTTP_400_BAD_REQUEST)
+                return Response("No analytical model found for id: {}".format(pk), status=status.HTTP_400_BAD_REQUEST)
             if IsOwnerOfWorkflowChild().has_object_permission(request, self, amodel):
                 amodel.delete()
                 return Response(status=status.HTTP_200_OK)
             else:
                 return Response(status=status.HTTP_401_UNAUTHORIZED)
-        return Response("No workflow 'id' in request.", status=status.HTTP_400_BAD_REQUEST)
+        return Response("No analytical model 'id' in request.", status=status.HTTP_400_BAD_REQUEST)

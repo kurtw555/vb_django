@@ -21,8 +21,8 @@ class WorkflowView(viewsets.ViewSet):
         :param request: GET request, containing the location id as 'location'
         :return: List of workflows
         """
-        if 'location' in self.request.query_params.keys():
-            workflows = Workflow.objects.filter(location__id=int(self.request.query_params.get('location')))
+        if 'location_id' in self.request.query_params.keys():
+            workflows = Workflow.objects.filter(location_id=int(self.request.query_params.get('location_id')))
             # TODO: Add ACL access objects
             serializer = self.serializer_class(workflows, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -46,7 +46,7 @@ class WorkflowView(viewsets.ViewSet):
                 return Response(workflow, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def put(self, request):
+    def update(self, request, pk=None):
         """
         PUT request for updating a workflow, if update will cause lose of analytical model integrity, a new workflow is
         created.
@@ -54,12 +54,12 @@ class WorkflowView(viewsets.ViewSet):
         :return: The updated/200 or new/201 workflow
         """
         serializer = self.serializer_class(data=request.data.dict(), context={'request': request})
-        if serializer.is_valid() and "id" in request.data.keys():
+        if serializer.is_valid() and pk is not None:
             try:
-                original_workflow = Workflow.objects.get(id=request.data["id"])
+                original_workflow = Workflow.objects.get(id=int(pk))
             except Workflow.DoesNotExist:
                 return Response(
-                    "No workflow found for id: {}".format(request.data["id"]),
+                    "No workflow found for id: {}".format(pk),
                     status=status.HTTP_400_BAD_REQUEST
                 )
             if IsOwnerOfLocationChild().has_object_permission(request, self, original_workflow):
@@ -68,25 +68,25 @@ class WorkflowView(viewsets.ViewSet):
                     response_status = status.HTTP_201_CREATED
                     response_data = serializer.data
                     response_data["id"] = workflow.id
-                    if int(request.data["id"]) == workflow.id:
+                    if int(pk) == workflow.id:
                         response_status = status.HTTP_200_OK
                     return Response(response_data, status=response_status)
             else:
                 return Response(status=status.HTTP_401_UNAUTHORIZED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request):
+    def destroy(self, request, pk=None):
         """
         DELETE request for removing the workflow from the location, cascading deletion for elements in database.
         Front end should require verification of action.
         :param request: DELETE request
         :return:
         """
-        if "id" in request.data.keys():
+        if pk is not None:
             try:
-                workflow = Workflow.objects.get(id=request.data["id"])
+                workflow = Workflow.objects.get(id=int(pk))
             except Workflow.DoesNotExist:
-                return Response("No workflow found for id: {}".format(request.data["id"]), status=status.HTTP_400_BAD_REQUEST)
+                return Response("No workflow found for id: {}".format(pk), status=status.HTTP_400_BAD_REQUEST)
             if IsOwnerOfLocationChild().has_object_permission(request, self, workflow):
                 workflow.delete()
                 return Response(status=status.HTTP_200_OK)
