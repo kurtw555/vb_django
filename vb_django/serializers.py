@@ -53,7 +53,7 @@ class LocationSerializer(serializers.ModelSerializer):
         validated = self.validate_points(validated_data)
         if validated:
             location = vb_models.Location(**validated_data)
-            location.owner = self.context["request"].user
+            location.owner_id = self.context["request"].user
             location.save()
         return location
 
@@ -64,12 +64,12 @@ class LocationSerializer(serializers.ModelSerializer):
             can_update = self.check_integrity(instance)
             if can_update:
                 location = vb_models.Location(**validated_data)
-                location.owner = self.context["request"].user
+                location.owner_id = self.context["request"].user
                 location.id = instance.id
                 location.save()
             else:
                 location = vb_models.Location(**validated_data)
-                location.owner = self.context["request"].user
+                location.owner_id = self.context["request"].user
                 location.save()
         return location
 
@@ -129,6 +129,13 @@ class WorkflowResultsSerializer(serializers.ModelSerializer):
         fields = [
             "workflow_id", "dataset_id", "timestamp", "comments"
         ]
+
+
+class PreProcessingConfigSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = vb_models.PreProcessingConfig
+        fields = ["workflow_id", "id", "name", "config"]
 
 
 class AnalyticalModelSerializer(serializers.ModelSerializer):

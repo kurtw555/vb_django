@@ -23,7 +23,7 @@ class LocationView(viewsets.ViewSet):
         :param request: GET request
         :return: List of locations
         """
-        locations = Location.objects.filter(owner=request.user)
+        locations = Location.objects.filter(owner_id=request.user)
         # TODO: Add ACL access objects
         serializer = self.serializer_class(locations, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

@@ -22,11 +22,12 @@ from drf_yasg.views import get_schema_view
 # from rest_framework.schemas import get_schema_view
 from drf_yasg import openapi
 from .landing import landing
-from vb_django.user_views import UserView, UserLoginView
-from vb_django.locations_views import LocationView
-from vb_django.workflow_views import WorkflowView
-from vb_django.analytical_model_views import AnalyticalModelView
-from vb_django.dataset_views import DatasetView
+from vb_django.views.user_views import UserView, UserLoginView
+from vb_django.views.locations_views import LocationView
+from vb_django.views.workflow_views import WorkflowView
+from vb_django.views.analytical_model_views import AnalyticalModelView
+from vb_django.views.dataset_views import DatasetView
+from vb_django.views.preprocessing_views import PreProcessingConfigView
 
 
 router = routers.SimpleRouter()
@@ -38,6 +39,8 @@ router.register('workflow', WorkflowView, basename='workflow')
 router.register('analyticalmodel', AnalyticalModelView, basename='analyticalmodel')
 # --------- Dataset API endpoints ---------- #
 router.register('dataset', DatasetView, basename='dataset')
+# --------- PreprocessingConfig API API endpoints ---------- #
+router.register('preprocessing', PreProcessingConfigView, basename='preprocessing')
 
 
 schema_view = get_schema_view(

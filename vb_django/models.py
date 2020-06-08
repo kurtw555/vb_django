@@ -33,6 +33,12 @@ class WorkflowResults(models.Model):
     comments = models.CharField(max_length=256)
 
 
+class PreProcessingConfig(models.Model):
+    workflow_id = models.ForeignKey(Workflow, on_delete=models.CASCADE)
+    name = models.CharField(max_length=32)
+    config = models.CharField(max_length=512)
+
+
 class AnalyticalModel(models.Model):
     workflow_id = models.ForeignKey(Workflow, on_delete=models.CASCADE)
     name = models.CharField(max_length=32)

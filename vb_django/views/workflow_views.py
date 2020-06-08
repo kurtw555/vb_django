@@ -2,9 +2,14 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
-from vb_django.models import Workflow
+from rest_framework.decorators import action
+from vb_django.models import Workflow, Dataset, PreProcessingConfig
 from vb_django.serializers import WorkflowSerializer
 from vb_django.permissions import IsOwnerOfLocationChild
+from vb_django.app.preprocessing import PPGraph
+from io import StringIO
+import pandas as pd
+import json
 
 
 class WorkflowView(viewsets.ViewSet):
@@ -93,3 +98,39 @@ class WorkflowView(viewsets.ViewSet):
             else:
                 return Response(status=status.HTTP_401_UNAUTHORIZED)
         return Response("No workflow 'id' in request.", status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=["get"], name="Execute Pre-processing")
+    def run_preprocessing(self, request, pk=None):
+        """
+        Execute a preprocessing configuration on a specified dataset.
+        :param request: GET request containing two parameters dataset_id and preprocessing_id
+        :param pk: id of the workflow
+        :return: complete pre-processing transformation of the dataset
+        """
+        if "dataset_id" in self.request.query_params.keys():
+            try:
+                dataset = Dataset.objects.get(id=int(self.request.query_params.get('dataset_id')))
+            except Dataset.DoesNotExist:
+                return Response("No dataset found for id: {}".format(int(self.request.query_params.get('dataset_id'))),
+                                status=status.HTTP_400_BAD_REQUEST)
+            if "preprocessing_id" in self.request.query_params.keys():
+                try:
+                    preprocess_config = PreProcessingConfig.objects.get(
+                        id=int(self.request.query_params.get('preprocessing_id'))
+                    )
+                except PreProcessingConfig.DoesNotExist:
+                    return Response(
+                        "No preprocessing configuration found for id: {}".format(
+                            int(self.request.query_params.get('preprocessing_id'))),
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                raw_data = pd.read_csv(StringIO(dataset.data.decode()))
+                pp_configuration = json.loads(preprocess_config.config)
+                result_string = StringIO()
+                result = PPGraph(raw_data, pp_configuration).data.to_csv(result_string)
+                response_result = {"processed_data": result_string.getvalue()}
+                return Response(response_result, status=status.HTTP_200_OK)
+            else:
+                return Response("No preprocessing 'preprocessing_id' in request.", status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response("No dataset 'dataset_id' in request.", status=status.HTTP_400_BAD_REQUEST)
