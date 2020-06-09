@@ -5,6 +5,8 @@ from rest_framework.authentication import TokenAuthentication
 from vb_django.models import Dataset
 from vb_django.serializers import DatasetSerializer
 from vb_django.permissions import IsOwnerOfWorkflowChild
+from io import StringIO
+import pandas as pd
 
 
 class DatasetView(viewsets.ViewSet):
@@ -24,6 +26,9 @@ class DatasetView(viewsets.ViewSet):
         if 'workflow_id' in self.request.query_params.keys():
             a_models = Dataset.objects.filter(workflow_id=int(self.request.query_params.get('workflow_id')))
             serializer = self.serializer_class(a_models, many=True)
+            for d in serializer.data:
+                m = Dataset.objects.get(id=d["id"])
+                d["data"] = pd.read_csv(StringIO(m.data.decode()))
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(
             "Required 'workflow_id' parameter for the workflow id was not found.",
@@ -42,6 +47,8 @@ class DatasetView(viewsets.ViewSet):
             serializer.save()
             dataset = serializer.data
             if dataset:
+                d = Dataset.objects.get(id=dataset["id"])
+                dataset["data"] = pd.read_csv(StringIO(d.data.decode()))
                 return Response(dataset, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -61,6 +68,7 @@ class DatasetView(viewsets.ViewSet):
                     response_status = status.HTTP_201_CREATED
                     response_data = serializer.data
                     response_data["id"] = amodel.id
+                    response_data["data"] = pd.read_csv(StringIO(amodel.data.decode()))
                     if int(pk) == amodel.id:
                         response_status = status.HTTP_200_OK
                     return Response(response_data, status=response_status)

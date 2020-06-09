@@ -127,8 +127,11 @@ class WorkflowView(viewsets.ViewSet):
                 raw_data = pd.read_csv(StringIO(dataset.data.decode()))
                 pp_configuration = json.loads(preprocess_config.config)
                 result_string = StringIO()
-                result = PPGraph(raw_data, pp_configuration).data.to_csv(result_string)
-                response_result = {"processed_data": result_string.getvalue()}
+                result = PPGraph(raw_data, pp_configuration).data
+                result_columns = set.difference(set(result.columns), set(raw_data.columns))
+                result = result[result_columns]
+                result.to_csv(result_string)
+                response_result = {"processed_data": result}
                 return Response(response_result, status=status.HTTP_200_OK)
             else:
                 return Response("No preprocessing 'preprocessing_id' in request.", status=status.HTTP_400_BAD_REQUEST)

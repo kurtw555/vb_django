@@ -189,7 +189,7 @@ class DatasetSerializer(serializers.ModelSerializer):
 
     def check_integrity(self, workflow):
         can_update = True
-        a_models = vb_models.AnalyticalModel.objects.filter(workflow__id=workflow.id)
+        a_models = vb_models.AnalyticalModel.objects.filter(workflow_id=workflow.id)
         for m in a_models:
             if m.model is not None:
                 can_update = False
@@ -206,9 +206,9 @@ class DatasetSerializer(serializers.ModelSerializer):
         if "data" in validated_data.keys():
             validated_data["data"] = str(validated_data["data"]).encode()
         dataset = vb_models.Dataset(**validated_data)
-        if self.check_integrity(dataset.workflow):
+        if self.check_integrity(dataset.workflow_id):
             dataset.id = instance.id
-        dataset.workflow = instance.workflow
+        dataset.workflow_id = instance.workflow_id
         dataset.save()
         return dataset
 

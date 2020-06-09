@@ -2,7 +2,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import os
+import os, copy
 
 
 class DAGFunctions:
@@ -103,7 +103,7 @@ class PPGraph:
 
     def __init__(self, data, parameters):
         self.graph = nx.DiGraph()
-        self.data = data
+        self.data = copy.copy(data)
         self.parameters = parameters
         self.generate_graph()
         self.traverse()
