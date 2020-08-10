@@ -15,7 +15,7 @@ class Location(models.Model):
 
 
 class LocationMetadata(models.Model):
-    location_id = models.ForeignKey(Location, on_delete=models.CASCADE)
+    base_id = models.ForeignKey(Location, on_delete=models.CASCADE)
     name = models.CharField(max_length=32)
     value = models.CharField(max_length=128)
 
@@ -49,7 +49,7 @@ class AnalyticalModel(models.Model):
 
 
 class ModelMetadata(models.Model):
-    model_id = models.ForeignKey(AnalyticalModel, on_delete=models.CASCADE)
+    base_id = models.ForeignKey(AnalyticalModel, on_delete=models.CASCADE)
     name = models.CharField(max_length=32)
     value = models.CharField(max_length=128)
 
@@ -77,7 +77,7 @@ class Dataset(models.Model):
 
 
 class DatasetMetadata(models.Model):
-    model_id = models.ForeignKey(Dataset, on_delete=models.CASCADE)
+    base_id = models.ForeignKey(Dataset, on_delete=models.CASCADE)
     name = models.CharField(max_length=32)
     value = models.CharField(max_length=128)
 

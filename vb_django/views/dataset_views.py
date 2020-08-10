@@ -5,6 +5,7 @@ from rest_framework.authentication import TokenAuthentication
 from vb_django.models import Dataset
 from vb_django.serializers import DatasetSerializer
 from vb_django.permissions import IsOwnerOfWorkflowChild
+from vb_django.app.metadata import Metadata
 from io import StringIO
 import pandas as pd
 
@@ -28,12 +29,37 @@ class DatasetView(viewsets.ViewSet):
             serializer = self.serializer_class(a_models, many=True)
             for d in serializer.data:
                 m = Dataset.objects.get(id=d["id"])
-                d["data"] = pd.read_csv(StringIO(m.data.decode()))
+                del d["data"]
+                # d["data"] = pd.read_csv(StringIO(m.data.decode()))
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(
             "Required 'workflow_id' parameter for the workflow id was not found.",
             status=status.HTTP_400_BAD_REQUEST
         )
+
+    def retrieve(self, request, pk=None):
+        """
+        GET request for the data of a dataset, specified by dataset id
+        :param request: GET request, containing the dataset id
+        :param pk: Dataset id
+        :return: Dataset data and relevant statistics
+        """
+        if pk:
+            dataset = Dataset.objects.get(pk=pk)
+            serializer = self.serializer_class(dataset, many=False)
+            response_data = serializer.data
+            m = Metadata(dataset)
+            meta = m.get_metadata("DatasetMetadata")
+            if meta:
+                response_data["metadata"] = meta
+            for d in serializer.data:
+                response_data["data"] = pd.read_csv(StringIO(dataset.data.decode()))
+            return Response(response_data, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                "Required id for the dataset id was not found.",
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     def create(self, request):
         """
@@ -48,12 +74,17 @@ class DatasetView(viewsets.ViewSet):
             dataset = serializer.data
             if dataset:
                 d = Dataset.objects.get(id=dataset["id"])
-                dataset["data"] = pd.read_csv(StringIO(d.data.decode()))
+                m = Metadata(d, dataset_inputs["metadata"])
+                meta = m.set_metadata("DatasetMetadata")
+                if meta:
+                    dataset["metadata"] = meta
+                del dataset["data"]
                 return Response(dataset, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, pk=None):
-        serializer = self.serializer_class(data=request.data.dict(), context={'request': request})
+        dataset_inputs = request.data.dict()
+        serializer = self.serializer_class(data=dataset_inputs, context={'request': request})
         if serializer.is_valid() and pk is not None:
             try:
                 original_dataset = Dataset.objects.get(id=int(pk))
@@ -64,11 +95,15 @@ class DatasetView(viewsets.ViewSet):
                 )
             if IsOwnerOfWorkflowChild().has_object_permission(request, self, original_dataset):
                 amodel = serializer.update(original_dataset, serializer.validated_data)
+                m = Metadata(amodel, dataset_inputs["metadata"])
+                meta = m.set_metadata("DatasetMetadata")
                 if amodel:
                     response_status = status.HTTP_201_CREATED
                     response_data = serializer.data
                     response_data["id"] = amodel.id
-                    response_data["data"] = pd.read_csv(StringIO(amodel.data.decode()))
+                    del response_data["data"]
+                    if meta:
+                        response_data["metadata"] = meta
                     if int(pk) == amodel.id:
                         response_status = status.HTTP_200_OK
                     return Response(response_data, status=response_status)
@@ -83,6 +118,8 @@ class DatasetView(viewsets.ViewSet):
             except Dataset.DoesNotExist:
                 return Response("No dataset found for id: {}".format(pk), status=status.HTTP_400_BAD_REQUEST)
             if IsOwnerOfWorkflowChild().has_object_permission(request, self, dataset):
+                m = Metadata(dataset)
+                m.delete_metadata("DatasetMetadata")
                 dataset.delete()
                 return Response(status=status.HTTP_200_OK)
             else:
