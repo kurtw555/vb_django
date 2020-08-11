@@ -1,5 +1,4 @@
 from django.apps import apps
-from vb_django import models as vbm
 import json
 
 

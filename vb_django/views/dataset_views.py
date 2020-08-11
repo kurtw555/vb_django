@@ -6,6 +6,7 @@ from vb_django.models import Dataset
 from vb_django.serializers import DatasetSerializer
 from vb_django.permissions import IsOwnerOfWorkflowChild
 from vb_django.app.metadata import Metadata
+from vb_django.app.statistics import DatasetStatistics
 from io import StringIO
 import pandas as pd
 
@@ -28,9 +29,7 @@ class DatasetView(viewsets.ViewSet):
             a_models = Dataset.objects.filter(workflow_id=int(self.request.query_params.get('workflow_id')))
             serializer = self.serializer_class(a_models, many=True)
             for d in serializer.data:
-                m = Dataset.objects.get(id=d["id"])
                 del d["data"]
-                # d["data"] = pd.read_csv(StringIO(m.data.decode()))
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(
             "Required 'workflow_id' parameter for the workflow id was not found.",
@@ -50,10 +49,14 @@ class DatasetView(viewsets.ViewSet):
             response_data = serializer.data
             m = Metadata(dataset)
             meta = m.get_metadata("DatasetMetadata")
+            response = "Response"
             if meta:
                 response_data["metadata"] = meta
-            for d in serializer.data:
-                response_data["data"] = pd.read_csv(StringIO(dataset.data.decode()))
+                response = meta["response"]
+            response_data["data"] = pd.read_csv(StringIO(dataset.data.decode()))
+            if response not in response_data["data"]:
+                response = response_data["data"].columns.tolist()[0]
+            response_data["statistics"] = DatasetStatistics(response_data["data"]).calculate_statistics(response)
             return Response(response_data, status=status.HTTP_200_OK)
         else:
             return Response(
@@ -76,8 +79,14 @@ class DatasetView(viewsets.ViewSet):
                 d = Dataset.objects.get(id=dataset["id"])
                 m = Metadata(d, dataset_inputs["metadata"])
                 meta = m.set_metadata("DatasetMetadata")
+                response = "Response"
                 if meta:
                     dataset["metadata"] = meta
+                    response = meta["response"]
+                data = pd.read_csv(StringIO(d.data.decode()))
+                if response not in data:
+                    response = data.columns.tolist()[0]
+                dataset["statistics"] = DatasetStatistics(data).calculate_statistics(response)
                 del dataset["data"]
                 return Response(dataset, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
