@@ -1,4 +1,5 @@
 from sklearn.linear_model import LinearRegression
+import sklearn.metrics as skm
 import numpy as np
 import scipy.stats as scs
 import warnings
@@ -44,3 +45,16 @@ class DatasetStatistics:
             }
             stats[name] = v_stats
         return stats
+
+
+def evaluate_results(predicted, actual):
+    metrics = {
+        "accuracy": skm.accuracy_score(actual, predicted),
+        "confusion_matrix": skm.confusion_matrix(actual, predicted),
+        "max_error": skm.max_error(actual, predicted),
+        "mean_absolute_error": skm.mean_absolute_error(actual, predicted),
+        "mean_squared_error": skm.mean_squared_error(actual, predicted),
+        "root_mean_squared_error": skm.mean_squared_error(actual, predicted, squared=False),
+        "r2": skm.r2_score(actual, predicted)
+    }
+    return metrics

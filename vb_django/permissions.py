@@ -15,7 +15,7 @@ class IsOwnerOfLocationChild(permissions.BasePermission):
     Checks if the user ia the owner of the workflow's corresponding location.
     """
     def has_object_permission(self, request, view, obj):
-        return obj.location.owner_id == request.user
+        return obj.location_id.owner_id == request.user
 
 
 class IsOwnerOfWorkflowChild(permissions.BasePermission):

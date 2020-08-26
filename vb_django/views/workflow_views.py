@@ -3,10 +3,12 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import action
-from vb_django.models import Workflow, Dataset, PreProcessingConfig
+from vb_django.models import Workflow, Dataset, PreProcessingConfig, AnalyticalModel
 from vb_django.serializers import WorkflowSerializer
 from vb_django.permissions import IsOwnerOfLocationChild
 from vb_django.app.preprocessing import PPGraph
+from vb_django.task_controller import DaskTasks
+from vb_django.app.metadata import Metadata
 from io import StringIO
 import pandas as pd
 import json
@@ -137,3 +139,59 @@ class WorkflowView(viewsets.ViewSet):
                 return Response("No preprocessing 'preprocessing_id' in request.", status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response("No dataset 'dataset_id' in request.", status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=["post"], name="Execute technique for specified dataset, analytical model and preprocessing")
+    def execute(self, request):
+        input_data = request.data.dict()
+        required_parameters = ["workflow_id", "dataset_id", "model_id"]
+        if set(required_parameters).issubset(input_data.keys()):
+            workflow = Workflow.objects.get(id=int(input_data["workflow_id"]))
+            dataset = Dataset.objects.get(id=int(input_data["dataset_id"]))
+            amodel = AnalyticalModel.objects.get(id=int(input_data["model_id"]))
+            if workflow is None or dataset is None or amodel is None:
+                message = []
+                message = message if workflow else message.append("No workflow found for id: {}".format(input_data["workflow_id"]))
+                message = message if dataset else message.append("No dataset found for id: {}".format(input_data["dataset_id"]))
+                message = message if amodel else message.append("No analytical model found for id: {}".format(input_data["amodel_id"]))
+                return Response(",".join(message), status=status.HTTP_400_BAD_REQUEST)
+            elif IsOwnerOfLocationChild().has_object_permission(request, self, workflow):
+                try:
+                    DaskTasks.setup_task(dataset_id=dataset.id, amodel_id=amodel.id)
+                    response = "Successfully executed analytical model"
+                except Exception as ex:
+                    response = "Error occured attempting to execute analytical model. Message: {}".format(ex)
+                return Response(response, status=status.HTTP_200_OK)
+            else:
+                return Response(status=status.HTTP_401_UNAUTHORIZED)
+        else:
+            return Response(
+                "Missing required parameters in POST request. Required parameters: {}".format(",".join(required_parameters)),
+                status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=False, methods=["get"], name="Get the status/results of an executed task.")
+    def data(self, request):
+        inputs = request.query_params
+        required_parameters = ["workflow_id", "model_id"]
+        if set(required_parameters).issubset(inputs.keys()):
+            workflow = Workflow.objects.get(id=int(inputs["workflow_id"]))
+            amodel = AnalyticalModel.objects.get(id=int(inputs["model_id"]))
+            if workflow is None or amodel is None:
+                message = []
+                message = message if workflow else message.append("No workflow found for id: {}".format(inputs["workflow_id"]))
+                message = message if amodel else message.append("No analytical model found for id: {}".format(inputs["amodel_id"]))
+                return Response(",".join(message), status=status.HTTP_400_BAD_REQUEST)
+            elif IsOwnerOfLocationChild().has_object_permission(request, self, workflow):
+                if amodel.model:
+                    data = None
+                    if "data" in inputs.keys():
+                        data = pd.read_csv(StringIO(inputs["data"]))
+                    response = DaskTasks.make_prediction(amodel.id, data)
+                else:
+                    meta = Metadata(parent=amodel)
+                    metadata = meta.get_metadata("ModelMetadata")
+                    response = metadata
+                return Response(response, status=status.HTTP_200_OK)
+        data = {}
+        response_status = status.HTTP_200_OK
+        return Response(data, status=response_status)
