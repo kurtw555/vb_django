@@ -8,7 +8,7 @@ cachetools==4.1.0
 certifi==2020.4.5.1
 chardet==3.0.4
 click==7.1.1
-cloudpickle==1.5.0
+cloudpickle==1.6.0
 coreapi==2.3.3
 coreschema==0.0.4
 cycler==0.10.0
@@ -69,7 +69,6 @@ ruamel.yaml==0.16.10
 ruamel.yaml.clib==0.2.0
 scipy==1.4.1
 seaborn==0.10.1
-simplejson==3.17.0
 six==1.14.0
 sklearn
 sortedcontainers==2.1.0
@@ -87,6 +86,5 @@ uritemplate==3.0.1
 urllib3==1.25.9
 Werkzeug==1.0.1
 wincertstore==0.2
-wrapt==1.12.1
 xlrd==1.2.0
 zict==2.0.0
