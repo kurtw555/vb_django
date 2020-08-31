@@ -56,13 +56,14 @@ class DaskTasks:
 
             saved = False
             save_tries = 0
-            while not saved or save_tries < 5:
+            while not saved and save_tries < 5:
                 try:
                     amodel = AnalyticalModel.objects.get(id=model_id)
                     amodel.model = pickle.dumps(t.lr_estimator)
                     amodel.save()
                     saved = True
-                except Exception:
+                except Exception as ex:
+                    logger.warning("Error attempting to save pickled model: {}".format(ex))
                     time.sleep(1)
                     save_tries += 1
 
@@ -79,13 +80,14 @@ class DaskTasks:
             m = Metadata(parent=amodel, metadata=json.dumps({"status": status, "stage": stage}))
             m.set_metadata(meta)
         except Exception as ex:
+            logger.warning("Error attempting to save metadata update: {}".format(ex))
             DaskTasks.update_status(_id, status, stage, retry-1)
 
     @staticmethod
     def make_prediction(amodel_id, data=None):
         amodel = AnalyticalModel.objects.get(id=int(amodel_id))
         dataset = Dataset.objects.get(id=int(amodel.dataset))
-        y = None
+        y_data = None
         if data is None:
             df = pd.read_csv(StringIO(dataset.data.decode()))
             y = df[target]
@@ -93,8 +95,8 @@ class DaskTasks:
             t = LinearRegressionAutomatedVB()
             t.set_data(x, y)
             data = t.x_test
+            y_data = t.y_test.to_numpy().flatten()
         model = pickle.loads(amodel.model)
         results = model.predict(data)
-        # residuals = None if y is None else y.to_numpy().flatten() - results
-        residuals = None
+        residuals = None if y_data is None else y_data - results
         return {"results": results, "residuals": residuals}
