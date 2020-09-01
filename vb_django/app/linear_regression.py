@@ -6,7 +6,7 @@ from sklearn.linear_model import LinearRegression
 # from dask_ml.linear_model import LinearRegression
 from sklearn.compose import TransformedTargetRegressor
 from vb_django.app.vb_helper import ShrinkBigKTransformer, None_T, LogP1_T
-from dask.distributed import Client
+# from dask.distributed import Client
 import pandas as pd
 import numpy as np
 import joblib
@@ -31,8 +31,8 @@ class LinearRegressionAutomatedVB:
     name = "Linear Regression Automated"
     id = "lra"
     description = "Automated pipeline with feature evaluation and selection for a linear regression estimator."
-    dask_scheduler = os.getenv("DASK_SCHEDULER", "tcp://" + socket.gethostbyname(socket.gethostname()) + ":8786")
-    client = Client(dask_scheduler)
+    # dask_scheduler = os.getenv("DASK_SCHEDULER", "tcp://" + socket.gethostbyname(socket.gethostname()) + ":8786")
+    # client = Client(dask_scheduler)
 
     def __init__(self, test_split=0.2, cv_folds=10, cv_reps=10, seed=42, one_out=False):
         self.start_time = time.time()
