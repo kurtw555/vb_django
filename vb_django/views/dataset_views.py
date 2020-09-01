@@ -77,6 +77,8 @@ class DatasetView(viewsets.ViewSet):
             dataset = serializer.data
             if dataset:
                 d = Dataset.objects.get(id=dataset["id"])
+                if "metadata" not in dataset_inputs.keys():
+                    dataset_inputs["metadata"] = None
                 m = Metadata(d, dataset_inputs["metadata"])
                 meta = m.set_metadata("DatasetMetadata")
                 response = "Response"
