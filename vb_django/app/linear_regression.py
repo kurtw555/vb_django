@@ -1,14 +1,24 @@
 from sklearn.model_selection import train_test_split, RepeatedKFold, GridSearchCV
+# from dask_ml.model_selection import GridSearchCV
 from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from sklearn.linear_model import LinearRegression
+# from dask_ml.linear_model import LinearRegression
 from sklearn.compose import TransformedTargetRegressor
 from vb_django.app.vb_helper import ShrinkBigKTransformer, None_T, LogP1_T
+from dask.distributed import Client
 import pandas as pd
 import numpy as np
+import joblib
 import warnings
+import os
+import socket
+import time
+import logging
 
-warnings.simplefilter('ignore')
+
+logger = logging.getLogger("vb_dask")
+logger.setLevel(logging.INFO)
 
 
 class LinearRegressionVB:
@@ -21,8 +31,11 @@ class LinearRegressionAutomatedVB:
     name = "Linear Regression Automated"
     id = "lra"
     description = "Automated pipeline with feature evaluation and selection for a linear regression estimator."
+    dask_scheduler = os.getenv("DASK_SCHEDULER", "tcp://" + socket.gethostbyname(socket.gethostname()) + ":8786")
+    client = Client(dask_scheduler)
 
     def __init__(self, test_split=0.2, cv_folds=10, cv_reps=10, seed=42, one_out=False):
+        self.start_time = time.time()
         self.test_split = test_split
         self.cv_folds = cv_folds
         self.cv_reps = cv_reps
@@ -53,6 +66,9 @@ class LinearRegressionAutomatedVB:
         self.n, self.k = self.x_train.shape
 
     def set_pipeline(self):
+        # with joblib.parallel_backend('dask'):
+        warnings.simplefilter('ignore')
+
         transformer_list = [None_T(), LogP1_T()]
         steps = [
             ('scaler', StandardScaler()),
@@ -78,6 +94,7 @@ class LinearRegressionAutomatedVB:
         self.lr_estimator.fit(self.x_train, self.y_train)
         self.attr = pd.DataFrame(self.lr_estimator.cv_results_)
         # generates the model that is saved
+        logger.info("Total execution time: {} sec".format(round(time.time() - self.start_time, 3)))
 
     def predict(self, x_test=None):
         # obsolete within dask stack

@@ -14,6 +14,7 @@ coreschema==0.0.4
 cycler==0.10.0
 cytoolz==0.10.1
 dask==2.24.0
+dask-ml==1.6.0
 decorator==4.4.2
 distributed==2.24.0
 Django==3.0.3
