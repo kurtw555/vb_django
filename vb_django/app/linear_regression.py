@@ -1,12 +1,13 @@
-from sklearn.model_selection import train_test_split, RepeatedKFold, GridSearchCV
-# from dask_ml.model_selection import GridSearchCV
+from sklearn.model_selection import RepeatedKFold, GridSearchCV, train_test_split
+#from dask_ml.model_selection import GridSearchCV, train_test_split
 from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from sklearn.linear_model import LinearRegression
-# from dask_ml.linear_model import LinearRegression
+#from dask_ml.linear_model import LinearRegression
 from sklearn.compose import TransformedTargetRegressor
 from vb_django.app.vb_helper import ShrinkBigKTransformer, None_T, LogP1_T
-# from dask.distributed import Client
+from dask.distributed import Client
+# from dask import array as darray
 import pandas as pd
 import numpy as np
 import joblib
@@ -28,13 +29,21 @@ class LinearRegressionVB:
 
 
 class LinearRegressionAutomatedVB:
-    name = "Linear Regression Automated"
+    name = "Automated Linear Regression"
     id = "lra"
     description = "Automated pipeline with feature evaluation and selection for a linear regression estimator."
-    # dask_scheduler = os.getenv("DASK_SCHEDULER", "tcp://" + socket.gethostbyname(socket.gethostname()) + ":8786")
-    # client = Client(dask_scheduler)
+
+    dask_scheduler = os.getenv("DASK_SCHEDULER", "tcp://" + socket.gethostbyname(socket.gethostname()) + ":8786")
 
     def __init__(self, test_split=0.2, cv_folds=10, cv_reps=10, seed=42, one_out=False):
+        self.hyperparameters = {
+            'test_split': 0.2,
+            'cv_folds': 10,
+            'cv_reps': 10,
+            'random_seed': 42,
+            'one_out': False
+        }
+        self.client = Client(self.dask_scheduler)
         self.start_time = time.time()
         self.test_split = test_split
         self.cv_folds = cv_folds
@@ -54,6 +63,16 @@ class LinearRegressionAutomatedVB:
         self.results = None
         self.residuals = None
 
+    def validate_h_params(self, parameters):
+        for h in self.hyperparameters.keys():
+            if h in parameters.keys():
+                self.hyperparameters[h] = parameters[h]
+        self.test_split = float(self.hyperparameters['test_split'])
+        self.cv_folds = int(self.hyperparameters['cv_folds'])
+        self.cv_reps = int(self.hyperparameters['cv_reps'])
+        self.seed = int(self.hyperparameters['random_seed'])
+        self.one_out = bool(self.hyperparameters['one_out'])
+
     def set_data(self, x, y):
         if self.one_out:
             self.x_train, self.x_test, self.y_train, self.y_test = (x, x, y, y)
@@ -64,6 +83,10 @@ class LinearRegressionAutomatedVB:
                 random_state=self.seed
             )
         self.n, self.k = self.x_train.shape
+        # self.x_train = darray.from_array(self.x_train.values)
+        # self.x_test = darray.from_array(self.x_test.values)
+        # self.y_train = darray.from_array(self.y_train.values)
+        # self.y_test = darray.from_array(self.y_test.values)
 
     def set_pipeline(self):
         # with joblib.parallel_backend('dask'):
@@ -101,3 +124,12 @@ class LinearRegressionAutomatedVB:
         x_test = x_test if x_test else self.x_test
         self.results = self.lr_estimator.predict(x_test)
         self.residuals = self.results - self.y_test.to_numpy().flatten()
+
+    def get_info(self):
+        details = {
+            "name": LinearRegressionAutomatedVB.name,
+            "id": LinearRegressionAutomatedVB.id,
+            "description": LinearRegressionAutomatedVB.description,
+            "hyperparameters": self.hyperparameters
+        }
+        return details

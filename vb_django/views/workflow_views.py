@@ -9,6 +9,7 @@ from vb_django.permissions import IsOwnerOfLocationChild
 from vb_django.app.preprocessing import PPGraph
 from vb_django.task_controller import DaskTasks
 from vb_django.app.metadata import Metadata
+from django.core.exceptions import ObjectDoesNotExist
 from io import StringIO
 import pandas as pd
 import json
@@ -145,15 +146,27 @@ class WorkflowView(viewsets.ViewSet):
         input_data = request.data.dict()
         required_parameters = ["workflow_id", "dataset_id", "model_id"]
         if set(required_parameters).issubset(input_data.keys()):
-            workflow = Workflow.objects.get(id=int(input_data["workflow_id"]))
-            dataset = Dataset.objects.get(id=int(input_data["dataset_id"]))
-            amodel = AnalyticalModel.objects.get(id=int(input_data["model_id"]))
+            try:
+                workflow = Workflow.objects.get(id=int(input_data["workflow_id"]))
+            except ObjectDoesNotExist:
+                workflow = None
+            try:
+                amodel = AnalyticalModel.objects.get(id=int(input_data["model_id"]))
+            except ObjectDoesNotExist:
+                amodel = None
+            try:
+                dataset = Dataset.objects.get(id=int(input_data["dataset_id"]))
+            except ObjectDoesNotExist:
+                dataset = None
             if workflow is None or dataset is None or amodel is None:
                 message = []
-                message = message if workflow else message.append("No workflow found for id: {}".format(input_data["workflow_id"]))
-                message = message if dataset else message.append("No dataset found for id: {}".format(input_data["dataset_id"]))
-                message = message if amodel else message.append("No analytical model found for id: {}".format(input_data["amodel_id"]))
-                return Response(",".join(message), status=status.HTTP_400_BAD_REQUEST)
+                if workflow is None:
+                    message.append("No workflow found for id: {}".format(input_data["workflow_id"]))
+                if dataset is None:
+                    message.append("No dataset found for id: {}".format(input_data["dataset_id"]))
+                if amodel is None:
+                    message.append("No analytical model found for id: {}".format(input_data["model_id"]))
+                return Response(", ".join(message), status=status.HTTP_400_BAD_REQUEST)
             elif IsOwnerOfLocationChild().has_object_permission(request, self, workflow):
                 try:
                     DaskTasks.setup_task(dataset_id=dataset.id, amodel_id=amodel.id)
@@ -165,33 +178,42 @@ class WorkflowView(viewsets.ViewSet):
                 return Response(status=status.HTTP_401_UNAUTHORIZED)
         else:
             return Response(
-                "Missing required parameters in POST request. Required parameters: {}".format(",".join(required_parameters)),
+                "Missing required parameters in POST request. Required parameters: {}".format(", ".join(required_parameters)),
                 status.HTTP_400_BAD_REQUEST
             )
 
-    @action(detail=False, methods=["get"], name="Get the status/results of an executed task.")
+    @action(detail=False, methods=["POST"], name="Get the status/results of an executed task.")
     def data(self, request):
-        inputs = request.query_params
+        inputs = request.data.dict()
         required_parameters = ["workflow_id", "model_id"]
         if set(required_parameters).issubset(inputs.keys()):
-            workflow = Workflow.objects.get(id=int(inputs["workflow_id"]))
-            amodel = AnalyticalModel.objects.get(id=int(inputs["model_id"]))
+            try:
+                workflow = Workflow.objects.get(id=int(inputs["workflow_id"]))
+            except ObjectDoesNotExist:
+                workflow = None
+            try:
+                amodel = AnalyticalModel.objects.get(id=int(inputs["model_id"]))
+            except ObjectDoesNotExist:
+                amodel = None
             if workflow is None or amodel is None:
                 message = []
                 message = message if workflow else message.append("No workflow found for id: {}".format(inputs["workflow_id"]))
                 message = message if amodel else message.append("No analytical model found for id: {}".format(inputs["amodel_id"]))
                 return Response(",".join(message), status=status.HTTP_400_BAD_REQUEST)
             elif IsOwnerOfLocationChild().has_object_permission(request, self, workflow):
+                response = {}
                 if amodel.model:
                     data = None
                     if "data" in inputs.keys():
                         data = pd.read_csv(StringIO(inputs["data"]))
-                    response = DaskTasks.make_prediction(amodel.id, data)
-                else:
-                    meta = Metadata(parent=amodel)
-                    metadata = meta.get_metadata("ModelMetadata")
-                    response = metadata
+                    response["data"] = DaskTasks.make_prediction(amodel.id, data)
+                    response["dataset_id"] = amodel.dataset
+                meta = Metadata(parent=amodel)
+                metadata = meta.get_metadata("ModelMetadata", ['status', 'stage', 'message'])
+                response["metadata"] = metadata
+                response["analytical_model_id"] = amodel.id
+                response["workflow_id"] = workflow.id
                 return Response(response, status=status.HTTP_200_OK)
-        data = {}
+        data = "Missing required parameters: {}".format(", ".join(required_parameters))
         response_status = status.HTTP_200_OK
         return Response(data, status=response_status)

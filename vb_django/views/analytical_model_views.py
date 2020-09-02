@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 from vb_django.models import AnalyticalModel
+from vb_django.app.metadata import Metadata
 from vb_django.serializers import AnalyticalModelSerializer
 from vb_django.permissions import IsOwnerOfWorkflowChild
 
@@ -42,11 +43,17 @@ class AnalyticalModelView(viewsets.ViewSet):
         if serializer.is_valid():
             serializer.save()
             amodel_inputs = serializer.data
+            if "metadata" in amodel_inputs.keys():
+                amodel_inputs["metadata"] = None
+                m = Metadata(amodel_inputs, amodel_inputs["metadata"])
+                meta = m.set_metadata("ModelMetadata")
+                amodel_inputs["metadata"] = m.get_metadata("ModelMetadata")
             if amodel_inputs:
                 return Response(amodel_inputs, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, pk=None):
+        amodel_inputs = request.data.dict()
         serializer = self.serializer_class(data=request.data.dict(), context={'request': request})
         if serializer.is_valid() and pk is not None:
             try:
@@ -64,6 +71,11 @@ class AnalyticalModelView(viewsets.ViewSet):
                     response_data["id"] = amodel.id
                     if int(pk) == amodel.id:
                         response_status = status.HTTP_200_OK
+                    if "metadata" in amodel_inputs.keys():
+                        amodel_inputs["metadata"] = None
+                        m = Metadata(amodel_inputs, amodel_inputs["metadata"])
+                        meta = m.set_metadata("ModelMetadata")
+                        response_data["metadata"] = m.get_metadata("ModelMetadata")
                     return Response(response_data, status=response_status)
             else:
                 return Response(status=status.HTTP_401_UNAUTHORIZED)

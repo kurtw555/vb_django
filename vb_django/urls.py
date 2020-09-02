@@ -28,6 +28,7 @@ from vb_django.views.workflow_views import WorkflowView
 from vb_django.views.analytical_model_views import AnalyticalModelView
 from vb_django.views.dataset_views import DatasetView
 from vb_django.views.preprocessing_views import PreProcessingConfigView
+from vb_django.views.utilities_views import analytical_model_details
 
 
 router = routers.SimpleRouter()
@@ -76,11 +77,7 @@ urlpatterns = [
     # ------ ADD the DRF urls registered to the router ------ #
     path('api/', include(router.urls)),
 
-    # ---------- Location Metadata API endpoints ----------- #
-    # path('api/locationmeta/', LocationMetadataAPI.get_metadata),            # GET
-    # path('api/locationmeta/add/', LocationMetadataAPI.add_metadata),        # POST
-    # path('api/locationmeta/update/', LocationMetadataAPI.edit_metadata),    # PUT
-    # path('api/locationmeta/remove/', LocationMetadataAPI.delete_metadata),  # DELETE
+    path('info/analyticalmodels/', analytical_model_details),
 
 ]
 
