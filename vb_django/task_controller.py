@@ -78,26 +78,36 @@ class DaskTasks:
         amodel = AnalyticalModel.objects.get(id=int(amodel_id))
         dataset = Dataset.objects.get(id=int(amodel.dataset))
         y_data = None
-        if data is None:
-            df = pd.read_csv(StringIO(dataset.data.decode()))
-            dataset_m = Metadata(parent=dataset).get_metadata("DatasetMetadata")
-            target = "Response" if "response" not in dataset_m.keys() else dataset_m["response"]
-            attributes = None if "attributes" not in dataset_m.keys() else dataset_m["attributes"]
-            y = df[target]
-            if attributes:
-                attributes_list = json.loads(attributes.replace("\'", "\""))
-                x = df[attributes_list]
-            else:
-                x = df.drop(target, axis=1)
 
-            t = LinearRegressionAutomatedVB()
-            t.set_data(x, y)
-            data = t.x_test
-            y_data = t.y_test.to_numpy().flatten()
+        df = pd.read_csv(StringIO(dataset.data.decode()))
+        dataset_m = Metadata(parent=dataset).get_metadata("DatasetMetadata")
+        target = "Response" if "response" not in dataset_m.keys() else dataset_m["response"]
+        attributes = None if "attributes" not in dataset_m.keys() else dataset_m["attributes"]
+        y = df[target]
+        if attributes:
+            attributes_list = json.loads(attributes.replace("\'", "\""))
+            x = df[attributes_list]
+        else:
+            x = df.drop(target, axis=1)
+
+        t = LinearRegressionAutomatedVB()
+        t.set_data(x, y)
+        x_train = t.x_train
+        y_train = t.y_train
+        x_data = t.x_test
+        y_test = t.y_test.to_numpy().flatten()
+
+        if data is not None:
+            x_data = data
         model = pickle.loads(amodel.model)
-        results = model.predict(data)
-        residuals = None if y_data is None else y_data - results
-        return {"results": results, "residuals": residuals}
+        response = {
+            "results": model.predict(x_data),
+            "train_score": model.score(x_train, y_train)
+        }
+        if data is None:
+            response["residuals"] = y_test - response["results"]
+            response["test_score"] = model.score(x_data, y_test)
+        return response
 
     @staticmethod
     def execute_lra(model_id, parameters, x, y, step_count):

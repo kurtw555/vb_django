@@ -1,9 +1,7 @@
 from sklearn.model_selection import RepeatedKFold, GridSearchCV, train_test_split
-#from dask_ml.model_selection import GridSearchCV, train_test_split
 from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from sklearn.linear_model import LinearRegression
-#from dask_ml.linear_model import LinearRegression
 from sklearn.compose import TransformedTargetRegressor
 from vb_django.app.vb_helper import ShrinkBigKTransformer, None_T, LogP1_T
 from dask.distributed import Client
@@ -33,8 +31,6 @@ class LinearRegressionAutomatedVB:
     id = "lra"
     description = "Automated pipeline with feature evaluation and selection for a linear regression estimator."
 
-    dask_scheduler = os.getenv("DASK_SCHEDULER", "tcp://" + socket.gethostbyname(socket.gethostname()) + ":8786")
-
     def __init__(self, test_split=0.2, cv_folds=10, cv_reps=10, seed=42, one_out=False):
         self.hyperparameters = {
             'test_split': 0.2,
@@ -43,7 +39,6 @@ class LinearRegressionAutomatedVB:
             'random_seed': 42,
             'one_out': False
         }
-        self.client = Client(self.dask_scheduler)
         self.start_time = time.time()
         self.test_split = test_split
         self.cv_folds = cv_folds
@@ -83,13 +78,8 @@ class LinearRegressionAutomatedVB:
                 random_state=self.seed
             )
         self.n, self.k = self.x_train.shape
-        # self.x_train = darray.from_array(self.x_train.values)
-        # self.x_test = darray.from_array(self.x_test.values)
-        # self.y_train = darray.from_array(self.y_train.values)
-        # self.y_test = darray.from_array(self.y_test.values)
 
     def set_pipeline(self):
-        # with joblib.parallel_backend('dask'):
         warnings.simplefilter('ignore')
 
         transformer_list = [None_T(), LogP1_T()]
