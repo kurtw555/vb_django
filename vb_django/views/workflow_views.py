@@ -202,15 +202,21 @@ class WorkflowView(viewsets.ViewSet):
                 return Response(",".join(message), status=status.HTTP_400_BAD_REQUEST)
             elif IsOwnerOfLocationChild().has_object_permission(request, self, workflow):
                 response = {}
-                if amodel.model:
-                    data = None
-                    if "data" in inputs.keys():
-                        data = pd.read_csv(StringIO(inputs["data"]))
-                    response["data"] = DaskTasks.make_prediction(amodel.id, data)
-                    response["dataset_id"] = amodel.dataset
                 meta = Metadata(parent=amodel)
                 metadata = meta.get_metadata("ModelMetadata", ['status', 'stage', 'message'])
                 response["metadata"] = metadata
+                completed = False
+                if "stage" in metadata.keys():
+                    i = metadata["stage"].split("/")
+                    if int(i[0]) == int(i[1]):
+                        completed = True
+                if completed:
+                    if amodel.model:
+                        data = None
+                        if "data" in inputs.keys():
+                            data = pd.read_csv(StringIO(inputs["data"]))
+                        response["data"] = DaskTasks.make_prediction(amodel.id, data)
+                        response["dataset_id"] = amodel.dataset
                 response["analytical_model_id"] = amodel.id
                 response["workflow_id"] = workflow.id
                 return Response(response, status=status.HTTP_200_OK)
