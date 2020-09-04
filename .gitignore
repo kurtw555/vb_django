@@ -131,3 +131,7 @@ dmypy.json
 # Misc options
 .idea
 .idea/
+
+# staticfiles
+vb_django/static/
+vb_django/staticfiles/

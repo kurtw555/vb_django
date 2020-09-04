@@ -33,7 +33,7 @@ class DaskTasks:
         amodel.save()
 
         client = Client(dask_scheduler)
-        df = pd.read_csv(StringIO(dataset.data.decode())).drop("ID", axis=1)
+        df = pd.read_csv(StringIO(bytes(dataset.data).decode())).drop("ID", axis=1)
         # add preprocessing to task
         fire_and_forget(client.submit(DaskTasks.execute_task, df, int(amodel.id), str(amodel.name), int(dataset_id)))
         #DaskTasks.execute_task(df, int(amodel.id), str(amodel.name), int(dataset_id))
@@ -79,7 +79,7 @@ class DaskTasks:
         dataset = Dataset.objects.get(id=int(amodel.dataset))
         y_data = None
 
-        df = pd.read_csv(StringIO(dataset.data.decode()))
+        df = pd.read_csv(StringIO(bytes(dataset.data).decode()))
         dataset_m = Metadata(parent=dataset).get_metadata("DatasetMetadata")
         target = "Response" if "response" not in dataset_m.keys() else dataset_m["response"]
         attributes = None if "attributes" not in dataset_m.keys() else dataset_m["attributes"]

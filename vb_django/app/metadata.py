@@ -15,7 +15,9 @@ class Metadata:
         if names:
             metadata = []
             for n in names:
-                metadata.append(metadata_model.objects.filter(base_id=self.parent, name=n).values()[0])
+                m = metadata_model.objects.filter(base_id=self.parent, name=n).values()
+                if len(m) > 0:
+                    metadata.append(m[0])
         else:
             metadata = metadata_model.objects.filter(base_id=self.parent).values()
         meta = {}

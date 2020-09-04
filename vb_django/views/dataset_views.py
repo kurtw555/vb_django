@@ -53,7 +53,7 @@ class DatasetView(viewsets.ViewSet):
             if meta:
                 response_data["metadata"] = meta
                 response = meta["response"]
-            response_data["data"] = pd.read_csv(StringIO(dataset.data.decode()))
+            response_data["data"] = pd.read_csv(StringIO(bytes(dataset.data).decode()))
             if response not in response_data["data"]:
                 response = response_data["data"].columns.tolist()[0]
             response_data["statistics"] = DatasetStatistics(response_data["data"]).calculate_statistics(response)
@@ -85,7 +85,7 @@ class DatasetView(viewsets.ViewSet):
                 if meta:
                     dataset["metadata"] = meta
                     response = meta["response"]
-                data = pd.read_csv(StringIO(d.data.decode()))
+                data = pd.read_csv(StringIO(bytes(d.data).decode()))
                 if response not in data:
                     response = data.columns.tolist()[0]
                 dataset["statistics"] = DatasetStatistics(data).calculate_statistics(response)
