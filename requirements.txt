@@ -16,7 +16,7 @@ cytoolz==0.10.1
 dask==2.24.0
 dask-ml==1.6.0
 decorator==4.4.2
-distributed==2.24.0
+distributed==2021.10.0
 Django==3.0.3
 django-extensions==2.2.9
 djangorestframework==3.11.0
